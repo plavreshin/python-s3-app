@@ -1,9 +1,12 @@
 import logging
 import boto3
-import click 
+import click
+import aiobotocore
+import asyncio
 
 logger = logging.getLogger(__name__)
 
+loop = asyncio.get_event_loop()
 
 class S3Broadcaster:
     def __init__(self, role_arn):
@@ -20,6 +23,13 @@ class S3Broadcaster:
         credentials = response["Credentials"]
         print(f"Received creds: {credentials}")
 
+    async def get_async_boto(self):
+        sesison = aiobotocore.get_session(loop=loop)
+        client = sesison.create_client("s3")
+        buckets = await client.list_buckets()
+        print(f"Buckets: {buckets}")
+
+
 
 @click.command()
 @click.option('--role', help='RoleARN value')
@@ -27,5 +37,6 @@ def run(role):
     print(f"role: {role}")
 
     s3_client = S3Broadcaster(role)
-    s3_client.get_credentials()
+    loop.run_until_complete(s3_client.get_async_boto())
+
 
